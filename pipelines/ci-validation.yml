@@ -1,0 +1,61 @@
+# pipelines/ci-validation.yml
+# Sample Azure Pipelines CI workflow for testing MCP pipeline execution and two-step log diagnostics.
+
+trigger:
+  branches:
+    include:
+      - main
+      - feature/*
+
+pr:
+  branches:
+    include:
+      - main
+
+parameters:
+  - name: runExtendedChecks
+    displayName: 'Run Extended Security & Lint Checks'
+    type: boolean
+    default: true
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  projectName: 'Enterprise-Platform'
+
+stages:
+  - stage: ValidateAndTest
+    displayName: 'Validate Configuration & Run Unit Tests'
+    jobs:
+      - job: BuildAndLint
+        displayName: 'Build, Lint & Verify IaC'
+        steps:
+          - checkout: self
+            fetchDepth: 1
+
+          - script: |
+              echo "Validating project: $(projectName)"
+              echo "Checking Bicep CLI version..."
+              az bicep version
+            displayName: 'Verify Environment & Bicep CLI'
+
+          - script: |
+              echo "Running repository configuration checks..."
+              if [ ! -f ".vscode/mcp.json" ]; then
+                echo "##vso[task.logissue type=error]Missing .vscode/mcp.json configuration file!"
+                exit 1
+              fi
+              echo "MCP configuration verified successfully."
+            displayName: 'Validate MCP Workspace Configuration'
+
+          - ${{ if eq(parameters.runExtendedChecks, true) }}:
+            - script: |
+                echo "Executing extended governance verification..."
+                if [ ! -f ".github/copilot-instructions.md" ]; then
+                  echo "##vso[task.logissue type=error]Governance failure: .github/copilot-instructions.md is missing."
+                  exit 1
+                fi
+                echo "All governance checks passed."
+              displayName: 'Run Governance & Security Lint'

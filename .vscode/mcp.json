@@ -1,0 +1,30 @@
+{
+  "inputs": [
+    {
+      "id": "ado_org",
+      "type": "promptString",
+      "description": "Enter your Azure DevOps Organization name (e.g., contoso-devops-org)"
+    }
+  ],
+  "servers": {
+    "ado": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure-devops/mcp",
+        "${input:ado_org}",
+        "--domains",
+        "core",
+        "work",
+        "work-items",
+        "repositories",
+        "pipelines"
+      ],
+      "env": {
+        "ADO_MCP_PROJECT": "Enterprise-Platform",
+        "ADO_MCP_TEAM": "Platform-Engineering-Team"
+      }
+    }
+  }
+}
